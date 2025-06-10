@@ -105,7 +105,22 @@
 
         .upload-area p {
             color: var(--text-secondary);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+        }
+
+        .privacy-notice {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: var(--success-color);
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin: 15px 0 20px 0;
+            border-left: 3px solid var(--success-color);
+        }
+
+        [data-theme="dark"] .privacy-notice {
+            background-color: rgba(76, 175, 80, 0.15);
+            color: #81c784;
         }
 
         input[type="file"] {
