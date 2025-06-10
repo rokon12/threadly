@@ -596,6 +596,7 @@
 
     <script>
         let currentThreadDump = null;
+        let expandedContainers = new Set();
         let currentFilters = {
             search: '',
             states: {
@@ -606,17 +607,64 @@
             }
         };
 
+        // Settings management
+        const STORAGE_KEYS = {
+            THEME: 'threadly-theme',
+            FILTERS: 'threadly-filters',
+            EXPANDED: 'threadly-expanded'
+        };
+
+        function loadSettings() {
+            // Load theme
+            const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            // Load filter settings
+            const savedFilters = localStorage.getItem(STORAGE_KEYS.FILTERS);
+            if (savedFilters) {
+                try {
+                    const filters = JSON.parse(savedFilters);
+                    currentFilters = { ...currentFilters, ...filters };
+                    
+                    // Apply filter settings to UI
+                    document.getElementById('filterWaiting').checked = currentFilters.states.waiting;
+                    document.getElementById('filterSleeping').checked = currentFilters.states.sleeping;
+                    document.getElementById('filterRunnable').checked = currentFilters.states.runnable;
+                    document.getElementById('filterBlocked').checked = currentFilters.states.blocked;
+                } catch (e) {
+                    console.error('Failed to load filter settings:', e);
+                }
+            }
+
+            // Load expanded state
+            const savedExpanded = localStorage.getItem(STORAGE_KEYS.EXPANDED);
+            if (savedExpanded) {
+                try {
+                    expandedContainers = new Set(JSON.parse(savedExpanded));
+                } catch (e) {
+                    console.error('Failed to load expanded state:', e);
+                }
+            }
+        }
+
+        function saveFilterSettings() {
+            localStorage.setItem(STORAGE_KEYS.FILTERS, JSON.stringify(currentFilters));
+        }
+
+        function saveExpandedState() {
+            localStorage.setItem(STORAGE_KEYS.EXPANDED, JSON.stringify([...expandedContainers]));
+        }
+
         // Theme management
         function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
+            loadSettings();
         }
 
         function toggleTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
+            localStorage.setItem(STORAGE_KEYS.THEME, newTheme);
         }
 
         // File upload handling
@@ -682,6 +730,14 @@
             }
 
             currentThreadDump = data.threadDump;
+            
+            // When loading a new dump, expand all containers by default
+            expandedContainers.clear();
+            data.threadDump.threadContainers.forEach(container => {
+                expandedContainers.add(container.container);
+            });
+            saveExpandedState();
+            
             updateStats();
             renderTree();
             
@@ -752,6 +808,7 @@
             const containerNode = document.createElement('div');
             containerNode.className = 'container-node';
             containerNode.style.marginLeft = `${level * 20}px`;
+            containerNode.dataset.containerName = container.container;
             
             const header = document.createElement('div');
             header.className = 'container-header';
@@ -775,6 +832,12 @@
             
             const threadList = document.createElement('div');
             threadList.className = 'thread-list';
+            
+            // Check if this container should be collapsed based on saved state
+            if (!expandedContainers.has(container.container)) {
+                threadList.classList.add('collapsed');
+                expandIcon.classList.add('collapsed');
+            }
             
             if (container.threads) {
                 container.threads.forEach(thread => {
@@ -866,14 +929,19 @@
         function toggleContainer(containerNode) {
             const expandIcon = containerNode.querySelector('.expand-icon');
             const threadList = containerNode.querySelector('.thread-list');
+            const containerName = containerNode.dataset.containerName;
             
             if (threadList.classList.contains('collapsed')) {
                 threadList.classList.remove('collapsed');
                 expandIcon.classList.remove('collapsed');
+                expandedContainers.add(containerName);
             } else {
                 threadList.classList.add('collapsed');
                 expandIcon.classList.add('collapsed');
+                expandedContainers.delete(containerName);
             }
+            
+            saveExpandedState();
         }
 
         function toggleStackTrace(threadItem) {
@@ -884,21 +952,34 @@
         }
 
         function expandAll() {
+            document.querySelectorAll('.container-node').forEach(node => {
+                const containerName = node.dataset.containerName;
+                if (containerName) {
+                    expandedContainers.add(containerName);
+                }
+            });
+            
             document.querySelectorAll('.thread-list').forEach(list => {
                 list.classList.remove('collapsed');
             });
             document.querySelectorAll('.expand-icon').forEach(icon => {
                 icon.classList.remove('collapsed');
             });
+            
+            saveExpandedState();
         }
 
         function collapseAll() {
+            expandedContainers.clear();
+            
             document.querySelectorAll('.thread-list').forEach(list => {
                 list.classList.add('collapsed');
             });
             document.querySelectorAll('.expand-icon').forEach(icon => {
                 icon.classList.add('collapsed');
             });
+            
+            saveExpandedState();
         }
 
         function filterThreads() {
@@ -908,6 +989,7 @@
             currentFilters.states.runnable = document.getElementById('filterRunnable').checked;
             currentFilters.states.blocked = document.getElementById('filterBlocked').checked;
             
+            saveFilterSettings();
             renderTree();
         }
 
