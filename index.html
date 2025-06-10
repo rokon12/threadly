@@ -3,7 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Threadly - Java Thread Dump Analysis Tool</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>Threadly - Java Thread Dump Analysis Tool | Free Online Thread Dump Viewer</title>
+    <meta name="title" content="Threadly - Java Thread Dump Analysis Tool | Free Online Thread Dump Viewer">
+    <meta name="description" content="Free online Java thread dump analyzer with deadlock detection, performance insights, and interactive visualization. Analyze jstack JSON output with advanced concurrency analysis features.">
+    <meta name="keywords" content="java thread dump, jstack analyzer, deadlock detection, java concurrency, thread dump viewer, performance analysis, java debugging, thread state analysis">
+    <meta name="author" content="Bazlur Rahman">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://threadly.dev/">
+    <meta property="og:title" content="Threadly - Java Thread Dump Analysis Tool">
+    <meta property="og:description" content="Free online Java thread dump analyzer with deadlock detection, performance insights, and interactive visualization. Analyze jstack JSON output with advanced concurrency analysis features.">
+    <meta property="og:image" content="https://threadly.dev/og-image.png">
+    <meta property="og:site_name" content="Threadly">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://threadly.dev/">
+    <meta property="twitter:title" content="Threadly - Java Thread Dump Analysis Tool">
+    <meta property="twitter:description" content="Free online Java thread dump analyzer with deadlock detection, performance insights, and interactive visualization.">
+    <meta property="twitter:image" content="https://threadly.dev/og-image.png">
+    <meta property="twitter:creator" content="@bazlur_rahman">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧵</text></svg>">
+    <link rel="alternate icon" href="/favicon.ico">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://threadly.dev/">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Threadly",
+        "description": "Free online Java thread dump analyzer with deadlock detection, performance insights, and interactive visualization",
+        "url": "https://threadly.dev/",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Person",
+            "name": "Bazlur Rahman",
+            "url": "https://bazlur.com"
+        },
+        "creator": {
+            "@type": "Person",
+            "name": "Bazlur Rahman",
+            "url": "https://bazlur.com"
+        },
+        "featureList": [
+            "Java thread dump analysis",
+            "Deadlock detection",
+            "Performance insights",
+            "Interactive visualization",
+            "Thread state analysis",
+            "Export functionality",
+            "Client-side processing",
+            "Privacy-focused"
+        ]
+    }
+    </script>
+    
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -93,14 +163,17 @@
         </div>
     </div>
     
-    <header>
+    <header role="banner">
         <div class="container">
             <div class="header-content">
-                <h1>🧵 Threadly</h1>
-                <div>
-                    <button class="theme-toggle" onclick="showHelp()" style="margin-right: 10px;">❓ Help</button>
-                    <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Theme</button>
+                <div class="header-brand">
+                    <h1>🧵 Threadly</h1>
+                    <p class="tagline">Free Java Thread Dump Analyzer</p>
                 </div>
+                <nav role="navigation" aria-label="Main navigation">
+                    <button class="theme-toggle" onclick="showHelp()" style="margin-right: 10px;" aria-label="Open help">❓ Help</button>
+                    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark/light theme">🌓 Toggle Theme</button>
+                </nav>
             </div>
         </div>
     </header>
@@ -156,27 +229,30 @@
                 </div>
             </div>
 
-            <div class="book-promotion">
+            <aside class="book-promotion" role="complementary" aria-labelledby="book-heading">
                 <div class="book-card">
                     <div class="book-content">
                         <div class="book-cover">
                             <img src="https://learning.oreilly.com/covers/urn:orm:book:9781098165406/800w/" 
-                                 alt="Modern Concurrency in Java book cover"
-                                 loading="lazy">
+                                 alt="Modern Concurrency in Java book cover by Bazlur Rahman"
+                                 loading="lazy"
+                                 width="80"
+                                 height="100">
                         </div>
                         <div class="book-details">
-                            <h3>Learn More About Java Concurrency</h3>
-                            <p>Dive deeper into Java concurrency patterns, thread management, and performance optimization with <strong>"Modern Concurrency in Java"</strong></p>
+                            <h3 id="book-heading">Learn More About Java Concurrency</h3>
+                            <p>Dive deeper into Java concurrency patterns, thread management, and performance optimization with <strong>"Modern Concurrency in Java"</strong> by Bazlur Rahman</p>
                             <a href="https://learning.oreilly.com/library/view/modern-concurrency-in/9781098165406/" 
                                target="_blank" 
                                rel="noopener noreferrer" 
-                               class="book-link">
+                               class="book-link"
+                               aria-label="Read Modern Concurrency in Java on O'Reilly Learning Platform">
                                 📖 Read on O'Reilly →
                             </a>
                         </div>
                     </div>
                 </div>
-            </div>
+            </aside>
 
             <div class="instructions">
                 <h3>How to Generate Thread Dumps</h3>
@@ -292,6 +368,36 @@
             </div>
         </div>
     </main>
+
+    <footer role="contentinfo" class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Threadly</h4>
+                    <p>Threadly is a free, open-source Java thread dump analyzer that helps developers debug concurrency issues, detect deadlocks, and analyze thread performance. All processing happens client-side for maximum privacy and security.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Features</h4>
+                    <ul>
+                        <li>Deadlock detection and analysis</li>
+                        <li>Thread state visualization</li>
+                        <li>Performance insights and recommendations</li>
+                        <li>Interactive thread dump exploration</li>
+                        <li>Export capabilities (HTML, Text)</li>
+                        <li>Client-side processing (privacy-first)</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Author</h4>
+                    <p>Created by <a href="https://bazlur.com" target="_blank" rel="noopener">Bazlur Rahman</a>, author of "Modern Concurrency in Java" and Java Champion.</p>
+                    <p>For more Java concurrency insights, follow <a href="https://twitter.com/bazlur_rahman" target="_blank" rel="noopener">@bazlur_rahman</a></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Threadly. Made with ❤️ for the Java community.</p>
+            </div>
+        </div>
+    </footer>
 
     <script src="js/app.js"></script>
 </body>
