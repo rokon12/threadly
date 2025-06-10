@@ -528,6 +528,93 @@
             background-color: var(--bg-primary);
         }
 
+        .book-promotion {
+            margin: 30px 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .book-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .book-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .book-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .book-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .book-details h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .book-details p {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            line-height: 1.4;
+            opacity: 0.95;
+        }
+
+        .book-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .book-link:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        [data-theme="dark"] .book-card {
+            background: linear-gradient(135deg, #4c6ef5 0%, #6741d9 100%);
+            box-shadow: 0 4px 20px rgba(76, 110, 245, 0.3);
+        }
+
+        [data-theme="dark"] .book-card:hover {
+            box-shadow: 0 8px 30px rgba(76, 110, 245, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .book-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+            }
+            
+            .book-icon {
+                font-size: 28px;
+            }
+        }
+
         .instructions {
             background-color: var(--bg-secondary);
             border-radius: 8px;
