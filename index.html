@@ -882,7 +882,8 @@
                 max-height: none !important;
             }
 
-            .state-summary-bar {
+            .state-summary-bar,
+            .pie-chart {
                 display: none !important;
             }
 
@@ -922,6 +923,46 @@
             background-color: var(--accent-color);
             color: white;
             border-color: var(--accent-color);
+        }
+
+        .pie-chart {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 15px auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pie-slice {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+        }
+
+        .pie-slice:nth-child(1) {
+            transform: rotate(0deg);
+        }
+
+        .pie-slice:nth-child(2) {
+            transform: rotate(90deg);
+        }
+
+        .pie-slice:nth-child(3) {
+            transform: rotate(180deg);
+        }
+
+        .pie-slice:nth-child(4) {
+            transform: rotate(270deg);
+        }
+
+        .pie-slice::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 0 0 100% 0;
         }
     </style>
 </head>
@@ -1082,6 +1123,9 @@
 
                     <div class="thread-state-summary" id="threadStateSummary">
                         <h4 style="font-size: 14px; margin-bottom: 12px;">Thread States</h4>
+                        <div class="pie-chart" id="pieChart">
+                            <!-- Dynamically populated -->
+                        </div>
                         <div id="stateSummaryContent">
                             <!-- Dynamically populated -->
                         </div>
@@ -1497,16 +1541,58 @@
         function updateThreadStateSummary(stateCounts, totalThreads) {
             const summaryContent = document.getElementById('stateSummaryContent');
             const summaryBar = document.getElementById('stateSummaryBar');
+            const pieChart = document.getElementById('pieChart');
             
             summaryContent.innerHTML = '';
             summaryBar.innerHTML = '';
+            pieChart.innerHTML = '';
             
             const states = [
-                { name: 'WAITING', emoji: '🟡', color: 'var(--waiting-color)' },
-                { name: 'SLEEPING', emoji: '🟣', color: 'var(--sleeping-color)' },
-                { name: 'RUNNABLE', emoji: '🟢', color: 'var(--runnable-color)' },
-                { name: 'BLOCKED', emoji: '🔴', color: 'var(--blocked-color)' }
+                { name: 'WAITING', emoji: '🟡', color: '#FFC107' },
+                { name: 'SLEEPING', emoji: '🟣', color: '#9C27B0' },
+                { name: 'RUNNABLE', emoji: '🟢', color: '#4CAF50' },
+                { name: 'BLOCKED', emoji: '🔴', color: '#F44336' }
             ];
+            
+            // Create pie chart
+            let currentAngle = 0;
+            const hasData = totalThreads > 0 && !Object.values(stateCounts).every(count => count === 0);
+            
+            if (hasData) {
+                states.forEach(state => {
+                    const count = stateCounts[state.name];
+                    if (count > 0) {
+                        const percentage = (count / totalThreads) * 100;
+                        const angle = (percentage / 100) * 360;
+                        
+                        const slice = document.createElement('div');
+                        slice.style.position = 'absolute';
+                        slice.style.width = '100%';
+                        slice.style.height = '100%';
+                        slice.style.background = `conic-gradient(from ${currentAngle}deg, ${state.color} 0deg, ${state.color} ${angle}deg, transparent ${angle}deg)`;
+                        
+                        pieChart.appendChild(slice);
+                        currentAngle += angle;
+                    }
+                });
+                
+                // Add center circle for donut effect
+                const center = document.createElement('div');
+                center.style.position = 'absolute';
+                center.style.top = '20%';
+                center.style.left = '20%';
+                center.style.width = '60%';
+                center.style.height = '60%';
+                center.style.backgroundColor = 'var(--bg-secondary)';
+                center.style.borderRadius = '50%';
+                center.style.display = 'flex';
+                center.style.alignItems = 'center';
+                center.style.justifyContent = 'center';
+                center.style.fontSize = '10px';
+                center.style.fontWeight = 'bold';
+                center.textContent = totalThreads;
+                pieChart.appendChild(center);
+            }
             
             states.forEach(state => {
                 const count = stateCounts[state.name];
@@ -1540,8 +1626,10 @@
             if (totalThreads === 0 || Object.values(stateCounts).every(count => count === 0)) {
                 summaryContent.innerHTML = '<div style="color: var(--text-secondary); font-size: 14px; text-align: center; padding: 10px;">Thread state details not available</div>';
                 summaryBar.style.display = 'none';
+                pieChart.style.display = 'none';
             } else {
                 summaryBar.style.display = 'flex';
+                pieChart.style.display = 'block';
             }
         }
 
