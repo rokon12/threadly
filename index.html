@@ -490,9 +490,60 @@
             background-color: rgba(244, 67, 54, 0.1);
             color: #ef5350;
         }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .loading-content {
+            background-color: var(--bg-secondary);
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--accent-color);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 20px;
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .loading-details {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Processing thread dump...</div>
+            <div class="loading-details" id="loadingDetails">Parsing JSON data</div>
+        </div>
+    </div>
+    
     <header>
         <div class="container">
             <div class="header-content">
@@ -702,16 +753,44 @@
                 return;
             }
 
+            showLoading('Reading file...');
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
+                    updateLoadingText('Parsing JSON data...');
                     const data = JSON.parse(e.target.result);
-                    processThreadDump(data);
+                    
+                    updateLoadingText('Processing thread dump...');
+                    setTimeout(() => {
+                        processThreadDump(data);
+                        hideLoading();
+                    }, 100); // Small delay to ensure UI updates
                 } catch (error) {
+                    hideLoading();
                     showError('Invalid JSON file: ' + error.message);
                 }
             };
+            reader.onerror = () => {
+                hideLoading();
+                showError('Failed to read file');
+            };
             reader.readAsText(file);
+        }
+
+        function showLoading(text = 'Processing...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const details = document.getElementById('loadingDetails');
+            details.textContent = text;
+            overlay.style.display = 'flex';
+        }
+
+        function updateLoadingText(text) {
+            document.getElementById('loadingDetails').textContent = text;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
         }
 
         function showError(message) {
@@ -731,6 +810,11 @@
 
             currentThreadDump = data.threadDump;
             
+            // Show progress for large dumps
+            if (data.threadDump.threadContainers.length > 10) {
+                updateLoadingText(`Processing ${data.threadDump.threadContainers.length} containers...`);
+            }
+            
             // When loading a new dump, expand all containers by default
             expandedContainers.clear();
             data.threadDump.threadContainers.forEach(container => {
@@ -739,7 +823,18 @@
             saveExpandedState();
             
             updateStats();
-            renderTree();
+            
+            // Show rendering progress for very large dumps
+            const totalThreads = data.threadDump.threadContainers.reduce((sum, container) => 
+                sum + parseInt(container.threadCount || container.threads?.length || 0), 0);
+            if (totalThreads > 100) {
+                updateLoadingText(`Rendering ${totalThreads} threads...`);
+            }
+            
+            // Use setTimeout to allow UI to update before rendering
+            setTimeout(() => {
+                renderTree();
+            }, 10);
             
             document.getElementById('uploadSection').style.display = 'none';
             document.getElementById('analysisView').style.display = 'block';
@@ -1045,7 +1140,10 @@
         function loadSampleData(event) {
             event.stopPropagation();
             
-            const sampleData = {
+            showLoading('Loading sample data...');
+            
+            setTimeout(() => {
+                const sampleData = {
                 "threadDump": {
                     "processId": "10259",
                     "time": "2025-06-10T00:49:22.146091Z",
@@ -1159,7 +1257,9 @@
                 }
             };
             
-            processThreadDump(sampleData);
+                processThreadDump(sampleData);
+                hideLoading();
+            }, 100);
         }
 
         // Keyboard shortcuts
