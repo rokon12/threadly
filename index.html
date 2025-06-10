@@ -50,6 +50,10 @@
                         <span class="shortcut-keys">Escape</span>
                     </li>
                     <li class="shortcut-item">
+                        <span class="shortcut-description">Switch to paste mode</span>
+                        <span class="shortcut-keys">Ctrl/Cmd + V</span>
+                    </li>
+                    <li class="shortcut-item">
                         <span class="shortcut-description">Show this help</span>
                         <span class="shortcut-keys">?</span>
                     </li>
@@ -103,15 +107,41 @@
 
     <main class="container">
         <div class="upload-section" id="uploadSection">
-            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                <h2>📁 Upload Thread Dump JSON</h2>
-                <p>Drag and drop your thread dump JSON file here, or click to browse</p>
+            <div class="upload-methods">
+                <div class="method-tabs">
+                    <button class="method-tab active" onclick="switchUploadMethod('file')">📁 Upload File</button>
+                    <button class="method-tab" onclick="switchUploadMethod('paste')">📋 Paste JSON</button>
+                </div>
+                
+                <div class="upload-method" id="fileUploadMethod">
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                        <h2>📁 Upload Thread Dump JSON</h2>
+                        <p>Drag and drop your thread dump JSON file here, or click to browse</p>
+                        <input type="file" id="fileInput" accept=".json">
+                        <button class="btn">Choose File</button>
+                        <button class="btn btn-secondary" onclick="loadSampleData(event)">Try Demo</button>
+                    </div>
+                </div>
+                
+                <div class="upload-method" id="pasteUploadMethod" style="display: none;">
+                    <div class="paste-area">
+                        <h2>📋 Paste Thread Dump JSON</h2>
+                        <p>Copy and paste your thread dump JSON content below</p>
+                        <textarea 
+                            id="jsonTextArea" 
+                            placeholder="Paste your thread dump JSON here..."
+                            rows="10"></textarea>
+                        <div class="paste-controls">
+                            <button class="btn" onclick="processJsonFromTextArea()">Analyze JSON</button>
+                            <button class="btn btn-secondary" onclick="loadSampleData(event)">Try Demo</button>
+                            <button class="btn btn-secondary" onclick="clearTextArea()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="privacy-notice">
                     🔒 <strong>Privacy:</strong> This page is client-side only, and no data will leave your computer when you upload.
                 </div>
-                <input type="file" id="fileInput" accept=".json">
-                <button class="btn">Choose File</button>
-                <button class="btn btn-secondary" onclick="loadSampleData(event)">Try Demo</button>
             </div>
             
             <div class="recent-files" style="margin-top: 20px;">

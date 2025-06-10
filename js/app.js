@@ -1028,10 +1028,11 @@
         function loadSampleData(event) {
             event.stopPropagation();
             
-            showLoading('Loading sample data...');
+            // Check if we're in paste mode and should populate the textarea
+            const pasteMethod = document.getElementById('pasteUploadMethod');
+            const isInPasteMode = pasteMethod && pasteMethod.style.display !== 'none';
             
-            setTimeout(() => {
-                const sampleData = {
+            const sampleData = {
                 "threadDump": {
                     "processId": "10259",
                     "time": "2025-06-10T00:49:22.146091Z",
@@ -1145,9 +1146,18 @@
                 }
             };
             
-                processThreadDump(sampleData);
-                hideLoading();
-            }, 100);
+            if (isInPasteMode) {
+                // Populate textarea with sample data
+                const textArea = document.getElementById('jsonTextArea');
+                textArea.value = JSON.stringify(sampleData, null, 2);
+            } else {
+                // Process sample data directly (file upload mode)
+                showLoading('Loading sample data...');
+                setTimeout(() => {
+                    processThreadDump(sampleData);
+                    hideLoading();
+                }, 100);
+            }
         }
 
         // Keyboard shortcuts
@@ -1204,7 +1214,69 @@
                 e.preventDefault();
                 showHelp();
             }
+            
+            // Ctrl/Cmd + V - Switch to paste mode when not already in textarea
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v' && document.activeElement.tagName !== 'TEXTAREA') {
+                const uploadSection = document.getElementById('uploadSection');
+                if (uploadSection && uploadSection.style.display !== 'none') {
+                    e.preventDefault();
+                    switchUploadMethod('paste');
+                    setTimeout(() => {
+                        document.getElementById('jsonTextArea').focus();
+                    }, 100);
+                }
+            }
         });
+
+        // Upload method switching
+        function switchUploadMethod(method) {
+            const tabs = document.querySelectorAll('.method-tab');
+            const methods = document.querySelectorAll('.upload-method');
+            
+            // Update tab states
+            tabs.forEach(tab => tab.classList.remove('active'));
+            methods.forEach(methodEl => methodEl.style.display = 'none');
+            
+            // Show selected method
+            if (method === 'file') {
+                document.querySelector('.method-tab[onclick*="file"]').classList.add('active');
+                document.getElementById('fileUploadMethod').style.display = 'block';
+            } else if (method === 'paste') {
+                document.querySelector('.method-tab[onclick*="paste"]').classList.add('active');
+                document.getElementById('pasteUploadMethod').style.display = 'block';
+            }
+        }
+
+        function processJsonFromTextArea() {
+            const textArea = document.getElementById('jsonTextArea');
+            const jsonContent = textArea.value.trim();
+            
+            if (!jsonContent) {
+                showError('Please paste JSON content in the text area');
+                return;
+            }
+            
+            showLoading('Parsing JSON data...');
+            
+            try {
+                const data = JSON.parse(jsonContent);
+                updateLoadingText('Processing thread dump...');
+                setTimeout(() => {
+                    processThreadDump(data);
+                    // Save to recent files with a generated name
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    addRecentFile(`pasted-dump-${timestamp}.json`, jsonContent);
+                    hideLoading();
+                }, 100);
+            } catch (error) {
+                hideLoading();
+                showError('Invalid JSON format: ' + error.message);
+            }
+        }
+
+        function clearTextArea() {
+            document.getElementById('jsonTextArea').value = '';
+        }
 
         // Initialize theme on load
         initTheme();
