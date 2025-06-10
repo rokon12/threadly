@@ -787,6 +787,142 @@
         .clear-recent:hover {
             background-color: rgba(244, 67, 54, 0.1);
         }
+
+        /* Print styles */
+        @media print {
+            .loading-overlay,
+            .help-overlay,
+            .upload-section,
+            .error-message,
+            header,
+            .recent-files,
+            .export-menu,
+            .tree-controls {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+                font-size: 12px;
+                line-height: 1.4;
+            }
+
+            .analysis-view {
+                display: block !important;
+            }
+
+            .analysis-grid {
+                display: block !important;
+                grid-template-columns: none !important;
+            }
+
+            .sidebar {
+                position: static !important;
+                margin-bottom: 20px;
+                page-break-inside: avoid;
+                border: 1px solid #ccc;
+                padding: 15px;
+            }
+
+            .stats-panel,
+            .thread-state-summary {
+                break-inside: avoid;
+            }
+
+            .filter-section {
+                display: none !important;
+            }
+
+            .tree-container {
+                background: none !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+
+            .tree-view {
+                font-family: monospace !important;
+                font-size: 11px !important;
+            }
+
+            .container-header {
+                font-weight: bold;
+                margin: 10px 0 5px 0;
+                page-break-after: avoid;
+            }
+
+            .thread-item {
+                margin: 2px 0;
+                page-break-inside: avoid;
+            }
+
+            .thread-state {
+                border: 1px solid #999 !important;
+                background: none !important;
+                color: black !important;
+                padding: 1px 4px !important;
+            }
+
+            .stack-trace {
+                font-size: 10px !important;
+                margin: 5px 0 !important;
+                background: #f8f8f8 !important;
+                border: 1px solid #ddd !important;
+                page-break-inside: avoid;
+            }
+
+            .stack-trace.show {
+                display: block !important;
+            }
+
+            /* Force show all stack traces in print */
+            .stack-trace {
+                display: block !important;
+                max-height: none !important;
+            }
+
+            .state-summary-bar {
+                display: none !important;
+            }
+
+            .thread-list.collapsed {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+
+            .expand-icon {
+                display: none !important;
+            }
+
+            /* Page breaks */
+            .container-node {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+        }
+
+        .print-button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.3s;
+            margin-left: 10px;
+        }
+
+        .print-button:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
     </style>
 </head>
 <body>
@@ -823,6 +959,10 @@
                     <li class="shortcut-item">
                         <span class="shortcut-description">Collapse all containers</span>
                         <span class="shortcut-keys">Ctrl/Cmd + Shift + E</span>
+                    </li>
+                    <li class="shortcut-item">
+                        <span class="shortcut-description">Print thread dump</span>
+                        <span class="shortcut-keys">Ctrl/Cmd + P</span>
                     </li>
                     <li class="shortcut-item">
                         <span class="shortcut-description">Close menus / Clear focus</span>
@@ -979,6 +1119,7 @@
                         <div>
                             <button onclick="expandAll()">➕ Expand All</button>
                             <button onclick="collapseAll()">➖ Collapse All</button>
+                            <button class="print-button" onclick="printView()">🖨️ Print</button>
                         </div>
                         <div class="export-menu">
                             <button onclick="toggleExportMenu()">📥 Export</button>
@@ -1255,6 +1396,21 @@
 
         function hideHelp() {
             document.getElementById('helpOverlay').style.display = 'none';
+        }
+
+        function printView() {
+            // Expand all containers for printing
+            expandAll();
+            
+            // Show all stack traces for printing
+            document.querySelectorAll('.stack-trace').forEach(trace => {
+                trace.classList.add('show');
+            });
+            
+            // Trigger print dialog
+            setTimeout(() => {
+                window.print();
+            }, 100);
         }
 
         function showError(message) {
@@ -1835,6 +1991,14 @@
             if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
                 e.preventDefault();
                 document.getElementById('fileInput').click();
+            }
+            
+            // Ctrl/Cmd + P - Print
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                if (document.getElementById('analysisView').style.display !== 'none') {
+                    printView();
+                }
             }
             
             // ? - Show help (when not in input)
