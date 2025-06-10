@@ -26,7 +26,16 @@
             const saved = localStorage.getItem(STORAGE_KEYS.RECENT_FILES);
             if (saved) {
                 try {
-                    recentFiles = JSON.parse(saved);
+                    const metadata = JSON.parse(saved);
+                    recentFiles = metadata.map(meta => {
+                        // Try to load the data for each file
+                        const dataKey = `${STORAGE_KEYS.RECENT_FILES}_data_${meta.name}_${meta.timestamp}`;
+                        const data = localStorage.getItem(dataKey);
+                        return {
+                            ...meta,
+                            data: data // Will be null if not found
+                        };
+                    });
                     updateRecentFilesUI();
                 } catch (e) {
                     console.error('Failed to load recent files:', e);
@@ -58,10 +67,24 @@
                 recentFiles = recentFiles.slice(0, MAX_RECENT_FILES);
             }
             
-            localStorage.setItem(STORAGE_KEYS.RECENT_FILES, JSON.stringify(recentFiles.map(f => ({
-                ...f,
-                data: undefined // Don't store data in localStorage, it's too large
-            }))));
+            // Store both metadata and data separately for better management
+            const metadataForStorage = recentFiles.map(f => ({
+                name: f.name,
+                size: f.size,
+                timestamp: f.timestamp,
+                processId: f.processId,
+                threadCount: f.threadCount
+            }));
+            
+            localStorage.setItem(STORAGE_KEYS.RECENT_FILES, JSON.stringify(metadataForStorage));
+            
+            // Store data separately with a key based on filename and timestamp
+            recentFiles.forEach(file => {
+                if (file.data) {
+                    const dataKey = `${STORAGE_KEYS.RECENT_FILES}_data_${file.name}_${file.timestamp}`;
+                    localStorage.setItem(dataKey, file.data);
+                }
+            });
             
             updateRecentFilesUI();
         }
@@ -108,6 +131,12 @@
 
         function clearRecentFiles() {
             if (confirm('Clear all recent files?')) {
+                // Clear data for each recent file
+                recentFiles.forEach(file => {
+                    const dataKey = `${STORAGE_KEYS.RECENT_FILES}_data_${file.name}_${file.timestamp}`;
+                    localStorage.removeItem(dataKey);
+                });
+                
                 recentFiles = [];
                 localStorage.removeItem(STORAGE_KEYS.RECENT_FILES);
                 updateRecentFilesUI();
@@ -1172,11 +1201,22 @@
                 }
             }
             
-            // Escape - Close dropdowns, help, and blur search
+            // Escape - Close dropdowns, help, blur search, or go back
             if (e.key === 'Escape') {
-                document.getElementById('exportDropdown').classList.remove('show');
-                hideHelp();
-                document.activeElement.blur();
+                const exportDropdown = document.getElementById('exportDropdown');
+                const helpOverlay = document.getElementById('helpOverlay');
+                const analysisView = document.getElementById('analysisView');
+                
+                // Check if any overlays are open first
+                if (exportDropdown && exportDropdown.classList.contains('show')) {
+                    exportDropdown.classList.remove('show');
+                } else if (helpOverlay && helpOverlay.style.display !== 'none') {
+                    hideHelp();
+                } else if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                    document.activeElement.blur();
+                } else if (analysisView && analysisView.style.display !== 'none') {
+                    goBackToUpload();
+                }
             }
             
             // Ctrl/Cmd + E - Expand all
@@ -1276,6 +1316,21 @@
 
         function clearTextArea() {
             document.getElementById('jsonTextArea').value = '';
+        }
+
+        // Navigation functions
+        function goBackToUpload() {
+            document.getElementById('analysisView').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'block';
+            
+            // Clear current analysis data
+            currentThreadDump = null;
+            
+            // Clear the tree view
+            const treeView = document.getElementById('treeView');
+            if (treeView) {
+                treeView.innerHTML = '';
+            }
         }
 
         // Initialize theme on load

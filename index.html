@@ -46,7 +46,7 @@
                         <span class="shortcut-keys">Ctrl/Cmd + P</span>
                     </li>
                     <li class="shortcut-item">
-                        <span class="shortcut-description">Close menus / Clear focus</span>
+                        <span class="shortcut-description">Close menus / Go back</span>
                         <span class="shortcut-keys">Escape</span>
                     </li>
                     <li class="shortcut-item">
@@ -168,6 +168,11 @@
         <div class="error-message" id="errorMessage"></div>
 
         <div class="analysis-view" id="analysisView">
+            <div class="back-button-container">
+                <button class="back-button" onclick="goBackToUpload()">
+                    ← Back to Upload
+                </button>
+            </div>
             <div class="analysis-grid">
                 <aside class="sidebar">
                     <div class="stats-panel">

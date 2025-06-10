@@ -241,6 +241,31 @@
             padding: 20px 0;
         }
 
+        .back-button-container {
+            margin-bottom: 20px;
+        }
+
+        .back-button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-button:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+            transform: translateX(-2px);
+        }
+
         .analysis-grid {
             display: grid;
             grid-template-columns: 300px 1fr;
