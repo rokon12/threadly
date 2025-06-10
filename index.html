@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Dump Viewer - Java Thread Analysis Tool</title>
+    <style>
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #dddddd;
+            --accent-color: #2196F3;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --error-color: #F44336;
+            --waiting-color: #FFC107;
+            --sleeping-color: #9C27B0;
+            --runnable-color: #4CAF50;
+            --blocked-color: #F44336;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #2d2d30;
+            --text-primary: #cccccc;
+            --text-secondary: #999999;
+            --border-color: #444444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--bg-secondary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .upload-section {
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 60px 40px;
+            background-color: var(--bg-secondary);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--accent-color);
+            background-color: rgba(33, 150, 243, 0.1);
+        }
+
+        .upload-area h2 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .analysis-view {
+            display: none;
+            padding: 20px 0;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .sidebar {
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .stats-panel {
+            margin-bottom: 30px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .filter-section h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+        }
+
+        .filter-option input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .filter-option label {
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .tree-container {
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .tree-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tree-controls button {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .tree-controls button:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .tree-view {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .container-node {
+            margin: 4px 0;
+        }
+
+        .container-header {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .container-header:hover {
+            background-color: rgba(33, 150, 243, 0.1);
+        }
+
+        .expand-icon {
+            display: inline-block;
+            width: 16px;
+            transition: transform 0.2s;
+        }
+
+        .expand-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .container-name {
+            margin-left: 4px;
+            font-weight: 600;
+        }
+
+        .thread-count {
+            margin-left: 8px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .thread-list {
+            margin-left: 20px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .thread-list.collapsed {
+            max-height: 0;
+        }
+
+        .thread-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .thread-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .thread-icon {
+            margin-right: 8px;
+        }
+
+        .thread-name {
+            flex: 1;
+        }
+
+        .thread-state {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .state-waiting {
+            background-color: var(--waiting-color);
+            color: #333;
+        }
+
+        .state-sleeping {
+            background-color: var(--sleeping-color);
+            color: white;
+        }
+
+        .state-runnable {
+            background-color: var(--runnable-color);
+            color: white;
+        }
+
+        .state-blocked {
+            background-color: var(--blocked-color);
+            color: white;
+        }
+
+        .stack-trace {
+            margin-left: 40px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background-color: var(--bg-primary);
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 4px;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .stack-trace.show {
+            display: block;
+        }
+
+        .stack-line {
+            padding: 2px 0;
+            white-space: nowrap;
+        }
+
+        .export-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .export-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: none;
+            min-width: 150px;
+            z-index: 10;
+        }
+
+        .export-dropdown.show {
+            display: block;
+        }
+
+        .export-option {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+
+        .export-option:hover {
+            background-color: var(--bg-primary);
+        }
+
+        .instructions {
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        .instructions h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .instructions code {
+            background-color: var(--bg-primary);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+        }
+
+        .instructions pre {
+            background-color: var(--bg-primary);
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .upload-area {
+                padding: 40px 20px;
+            }
+        }
+
+        .highlight {
+            background-color: rgba(255, 235, 59, 0.3);
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--accent-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        [data-theme="dark"] .error-message {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: #ef5350;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>🔍 Thread Dump Viewer</h1>
+                <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Theme</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <h2>📁 Upload Thread Dump JSON</h2>
+                <p>Drag and drop your thread dump JSON file here, or click to browse</p>
+                <input type="file" id="fileInput" accept=".json">
+                <button class="btn">Choose File</button>
+                <button class="btn btn-secondary" onclick="loadSampleData(event)">Try Demo</button>
+            </div>
+
+            <div class="instructions">
+                <h3>How to Generate Thread Dumps</h3>
+                <p>Generate a JSON thread dump from your Java application using:</p>
+                <pre><code>jstack -format=json &lt;pid&gt; &gt; thread-dump.json</code></pre>
+                <p>Or with JDK 21+ and virtual threads:</p>
+                <pre><code>jcmd &lt;pid&gt; Thread.dump_to_file -format=json thread-dump.json</code></pre>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="analysis-view" id="analysisView">
+            <div class="analysis-grid">
+                <aside class="sidebar">
+                    <div class="stats-panel">
+                        <h3>Summary</h3>
+                        <div class="stat-item">
+                            <span class="stat-label">Process ID</span>
+                            <span class="stat-value" id="processId">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Runtime Version</span>
+                            <span class="stat-value" id="runtimeVersion">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Threads</span>
+                            <span class="stat-value" id="totalThreads">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Containers</span>
+                            <span class="stat-value" id="totalContainers">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Timestamp</span>
+                            <span class="stat-value" id="timestamp">-</span>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h3>Search & Filter</h3>
+                        <input type="text" class="search-box" id="searchBox" placeholder="Search threads..." oninput="filterThreads()">
+                        
+                        <h4 style="margin-top: 20px; margin-bottom: 10px; font-size: 14px;">Thread States</h4>
+                        <div class="filter-option">
+                            <input type="checkbox" id="filterWaiting" checked onchange="filterThreads()">
+                            <label for="filterWaiting">🟡 Waiting</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="filterSleeping" checked onchange="filterThreads()">
+                            <label for="filterSleeping">🟣 Sleeping</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="filterRunnable" checked onchange="filterThreads()">
+                            <label for="filterRunnable">🟢 Runnable</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" id="filterBlocked" checked onchange="filterThreads()">
+                            <label for="filterBlocked">🔴 Blocked</label>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="tree-container">
+                    <div class="tree-controls">
+                        <div>
+                            <button onclick="expandAll()">➕ Expand All</button>
+                            <button onclick="collapseAll()">➖ Collapse All</button>
+                        </div>
+                        <div class="export-menu">
+                            <button onclick="toggleExportMenu()">📥 Export</button>
+                            <div class="export-dropdown" id="exportDropdown">
+                                <div class="export-option" onclick="exportAsText()">📄 Copy as Text</div>
+                                <div class="export-option" onclick="exportAsHTML()">🌐 Save as HTML</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tree-view" id="treeView"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentThreadDump = null;
+        let currentFilters = {
+            search: '',
+            states: {
+                waiting: true,
+                sleeping: true,
+                runnable: true,
+                blocked: true
+            }
+        };
+
+        // Theme management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.json')) {
+                showError('Please upload a JSON file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    processThreadDump(data);
+                } catch (error) {
+                    showError('Invalid JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
+        }
+
+        function processThreadDump(data) {
+            if (!data.threadDump || !data.threadDump.threadContainers) {
+                showError('Invalid thread dump format');
+                return;
+            }
+
+            currentThreadDump = data.threadDump;
+            updateStats();
+            renderTree();
+            
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('analysisView').style.display = 'block';
+        }
+
+        function updateStats() {
+            const dump = currentThreadDump;
+            document.getElementById('processId').textContent = dump.processId || '-';
+            document.getElementById('runtimeVersion').textContent = dump.runtimeVersion || '-';
+            document.getElementById('timestamp').textContent = new Date(dump.time).toLocaleString();
+            
+            let totalThreads = 0;
+            dump.threadContainers.forEach(container => {
+                totalThreads += parseInt(container.threadCount || container.threads?.length || 0);
+            });
+            
+            document.getElementById('totalThreads').textContent = totalThreads;
+            document.getElementById('totalContainers').textContent = dump.threadContainers.length;
+        }
+
+        function detectThreadState(thread) {
+            if (!thread.stack || thread.stack.length === 0) return 'RUNNABLE';
+            
+            const stackTrace = thread.stack.join('\n').toLowerCase();
+            
+            if (stackTrace.includes('park') || stackTrace.includes('wait')) return 'WAITING';
+            if (stackTrace.includes('sleep')) return 'SLEEPING';
+            if (stackTrace.includes('monitor') && stackTrace.includes('blocked')) return 'BLOCKED';
+            
+            return 'RUNNABLE';
+        }
+
+        function renderTree() {
+            const treeView = document.getElementById('treeView');
+            treeView.innerHTML = '';
+            
+            const containers = buildContainerTree(currentThreadDump.threadContainers);
+            containers.forEach(container => {
+                treeView.appendChild(renderContainer(container));
+            });
+        }
+
+        function buildContainerTree(containers) {
+            const containerMap = new Map();
+            const rootContainers = [];
+            
+            containers.forEach(container => {
+                containerMap.set(container.container, {
+                    ...container,
+                    children: []
+                });
+            });
+            
+            containers.forEach(container => {
+                if (container.parent && containerMap.has(container.parent)) {
+                    containerMap.get(container.parent).children.push(containerMap.get(container.container));
+                } else {
+                    rootContainers.push(containerMap.get(container.container));
+                }
+            });
+            
+            return rootContainers;
+        }
+
+        function renderContainer(container, level = 0) {
+            const containerNode = document.createElement('div');
+            containerNode.className = 'container-node';
+            containerNode.style.marginLeft = `${level * 20}px`;
+            
+            const header = document.createElement('div');
+            header.className = 'container-header';
+            header.onclick = () => toggleContainer(containerNode);
+            
+            const expandIcon = document.createElement('span');
+            expandIcon.className = 'expand-icon';
+            expandIcon.textContent = '▼';
+            
+            const containerName = document.createElement('span');
+            containerName.className = 'container-name';
+            containerName.textContent = `📦 ${container.container}`;
+            
+            const threadCount = document.createElement('span');
+            threadCount.className = 'thread-count';
+            threadCount.textContent = `(${container.threadCount || container.threads?.length || 0} threads)`;
+            
+            header.appendChild(expandIcon);
+            header.appendChild(containerName);
+            header.appendChild(threadCount);
+            
+            const threadList = document.createElement('div');
+            threadList.className = 'thread-list';
+            
+            if (container.threads) {
+                container.threads.forEach(thread => {
+                    const threadEl = renderThread(thread);
+                    if (threadEl) {
+                        threadList.appendChild(threadEl);
+                    }
+                });
+            }
+            
+            if (container.children) {
+                container.children.forEach(child => {
+                    threadList.appendChild(renderContainer(child, level + 1));
+                });
+            }
+            
+            containerNode.appendChild(header);
+            containerNode.appendChild(threadList);
+            
+            return containerNode;
+        }
+
+        function renderThread(thread) {
+            const state = detectThreadState(thread);
+            
+            if (!matchesFilters(thread, state)) {
+                return null;
+            }
+            
+            const threadItem = document.createElement('div');
+            threadItem.className = 'thread-item';
+            threadItem.onclick = () => toggleStackTrace(threadItem);
+            
+            const threadIcon = document.createElement('span');
+            threadIcon.className = 'thread-icon';
+            threadIcon.textContent = '🧵';
+            
+            const threadName = document.createElement('span');
+            threadName.className = 'thread-name';
+            threadName.innerHTML = highlightSearch(`#${thread.tid} ${thread.name}`);
+            
+            const threadState = document.createElement('span');
+            threadState.className = `thread-state state-${state.toLowerCase()}`;
+            threadState.textContent = state;
+            
+            threadItem.appendChild(threadIcon);
+            threadItem.appendChild(threadName);
+            threadItem.appendChild(threadState);
+            
+            if (thread.stack && thread.stack.length > 0) {
+                const stackTrace = document.createElement('div');
+                stackTrace.className = 'stack-trace';
+                
+                thread.stack.forEach(line => {
+                    const stackLine = document.createElement('div');
+                    stackLine.className = 'stack-line';
+                    stackLine.textContent = line;
+                    stackTrace.appendChild(stackLine);
+                });
+                
+                threadItem.appendChild(stackTrace);
+            }
+            
+            return threadItem;
+        }
+
+        function matchesFilters(thread, state) {
+            const searchTerm = currentFilters.search.toLowerCase();
+            if (searchTerm && !thread.name.toLowerCase().includes(searchTerm) && 
+                !thread.tid.toString().includes(searchTerm)) {
+                return false;
+            }
+            
+            const stateFilter = currentFilters.states[state.toLowerCase()];
+            if (stateFilter === false) {
+                return false;
+            }
+            
+            return true;
+        }
+
+        function highlightSearch(text) {
+            if (!currentFilters.search) return text;
+            
+            const regex = new RegExp(`(${currentFilters.search})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function toggleContainer(containerNode) {
+            const expandIcon = containerNode.querySelector('.expand-icon');
+            const threadList = containerNode.querySelector('.thread-list');
+            
+            if (threadList.classList.contains('collapsed')) {
+                threadList.classList.remove('collapsed');
+                expandIcon.classList.remove('collapsed');
+            } else {
+                threadList.classList.add('collapsed');
+                expandIcon.classList.add('collapsed');
+            }
+        }
+
+        function toggleStackTrace(threadItem) {
+            const stackTrace = threadItem.querySelector('.stack-trace');
+            if (stackTrace) {
+                stackTrace.classList.toggle('show');
+            }
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.thread-list').forEach(list => {
+                list.classList.remove('collapsed');
+            });
+            document.querySelectorAll('.expand-icon').forEach(icon => {
+                icon.classList.remove('collapsed');
+            });
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.thread-list').forEach(list => {
+                list.classList.add('collapsed');
+            });
+            document.querySelectorAll('.expand-icon').forEach(icon => {
+                icon.classList.add('collapsed');
+            });
+        }
+
+        function filterThreads() {
+            currentFilters.search = document.getElementById('searchBox').value;
+            currentFilters.states.waiting = document.getElementById('filterWaiting').checked;
+            currentFilters.states.sleeping = document.getElementById('filterSleeping').checked;
+            currentFilters.states.runnable = document.getElementById('filterRunnable').checked;
+            currentFilters.states.blocked = document.getElementById('filterBlocked').checked;
+            
+            renderTree();
+        }
+
+        function toggleExportMenu() {
+            const dropdown = document.getElementById('exportDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function exportAsText() {
+            let text = 'Thread Dump Analysis\n';
+            text += '===================\n\n';
+            text += `Process ID: ${currentThreadDump.processId}\n`;
+            text += `Runtime: ${currentThreadDump.runtimeVersion}\n`;
+            text += `Time: ${new Date(currentThreadDump.time).toLocaleString()}\n\n`;
+            
+            function addContainer(container, indent = '') {
+                text += `${indent}📦 ${container.container} (${container.threadCount || container.threads?.length || 0} threads)\n`;
+                
+                if (container.threads) {
+                    container.threads.forEach(thread => {
+                        const state = detectThreadState(thread);
+                        text += `${indent}  🧵 #${thread.tid} ${thread.name} [${state}]\n`;
+                    });
+                }
+                
+                if (container.children) {
+                    container.children.forEach(child => {
+                        addContainer(child, indent + '  ');
+                    });
+                }
+            }
+            
+            const containers = buildContainerTree(currentThreadDump.threadContainers);
+            containers.forEach(container => addContainer(container));
+            
+            navigator.clipboard.writeText(text);
+            alert('Thread dump copied to clipboard!');
+            toggleExportMenu();
+        }
+
+        function exportAsHTML() {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'thread-dump-analysis.html';
+            a.click();
+            URL.revokeObjectURL(url);
+            toggleExportMenu();
+        }
+
+        function loadSampleData(event) {
+            event.stopPropagation();
+            
+            const sampleData = {
+                "threadDump": {
+                    "processId": "10259",
+                    "time": "2025-06-10T00:49:22.146091Z",
+                    "runtimeVersion": "25-ea+25-3096",
+                    "threadContainers": [
+                        {
+                            "container": "<root>",
+                            "parent": null,
+                            "owner": "3",
+                            "threads": [
+                                {
+                                    "tid": "3",
+                                    "name": "main",
+                                    "stack": [
+                                        "java.base/jdk.internal.misc.Unsafe.park(Native Method)",
+                                        "java.base/java.util.concurrent.locks.LockSupport.park(LockSupport.java:221)",
+                                        "java.base/java.util.concurrent.StructuredTaskScope.implJoin(StructuredTaskScope.java:752)",
+                                        "java.base/java.util.concurrent.StructuredTaskScope.join(StructuredTaskScope.java:707)",
+                                        "StructCon.fetch(StructCon.java:62)",
+                                        "StructCon.main(StructCon.java:77)"
+                                    ]
+                                },
+                                {
+                                    "tid": "9",
+                                    "name": "Reference Handler",
+                                    "stack": [
+                                        "java.base/java.lang.ref.Reference.waitForReferencePendingList(Native Method)",
+                                        "java.base/java.lang.ref.Reference.processPendingReferences(Reference.java:246)",
+                                        "java.base/java.lang.ref.Reference$ReferenceHandler.run(Reference.java:208)"
+                                    ]
+                                },
+                                {
+                                    "tid": "10",
+                                    "name": "Finalizer",
+                                    "stack": [
+                                        "java.base/java.lang.Object.wait0(Native Method)",
+                                        "java.base/java.lang.Object.wait(Object.java:375)",
+                                        "java.base/java.lang.Object.wait(Object.java:348)",
+                                        "java.base/java.lang.ref.NativeReferenceQueue.await(NativeReferenceQueue.java:48)",
+                                        "java.base/java.lang.ref.ReferenceQueue.remove0(ReferenceQueue.java:155)",
+                                        "java.base/java.lang.ref.NativeReferenceQueue.remove(NativeReferenceQueue.java:89)",
+                                        "java.base/java.lang.ref.Finalizer$FinalizerThread.run(Finalizer.java:173)"
+                                    ]
+                                }
+                            ],
+                            "threadCount": "8"
+                        },
+                        {
+                            "container": "doc-gathering-scope",
+                            "parent": "<root>",
+                            "owner": null,
+                            "threads": [
+                                {
+                                    "tid": "26",
+                                    "name": "doc-proc1",
+                                    "stack": [
+                                        "java.base/java.lang.Thread.sleep(Thread.java:574)",
+                                        "StructCon.processDocument(StructCon.java:29)",
+                                        "StructCon.lambda$fetch$0(StructCon.java:66)",
+                                        "java.base/java.util.concurrent.StructuredTaskScope$SubtaskImpl.run(StructuredTaskScope.java:886)",
+                                        "java.base/java.lang.VirtualThread.runContinuation(VirtualThread.java:248)",
+                                        "java.base/java.lang.VirtualThread$$Lambda/0x00007f65bc003288.run(Unknown Source)",
+                                        "java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.compute(ForkJoinTask.java:1726)",
+                                        "java.base/java.util.concurrent.ForkJoinTask$InterruptibleTask.exec(ForkJoinTask.java:1663)",
+                                        "java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:507)",
+                                        "java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1491)",
+                                        "java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1948)",
+                                        "java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:189)"
+                                    ]
+                                },
+                                {
+                                    "tid": "27",
+                                    "name": "doc-proc2",
+                                    "stack": [
+                                        "java.base/java.lang.Thread.sleep(Thread.java:574)",
+                                        "StructCon.processDocument(StructCon.java:29)",
+                                        "StructCon.lambda$fetch$0(StructCon.java:66)",
+                                        "java.base/java.util.concurrent.StructuredTaskScope$SubtaskImpl.run(StructuredTaskScope.java:886)",
+                                        "java.base/java.lang.VirtualThread.runContinuation(VirtualThread.java:248)",
+                                        "java.base/java.lang.VirtualThread$$Lambda/0x00007f65bc003288.run(Unknown Source)",
+                                        "java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.compute(ForkJoinTask.java:1726)",
+                                        "java.base/java.util.concurrent.ForkJoinTask$InterruptibleTask.exec(ForkJoinTask.java:1663)",
+                                        "java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:507)",
+                                        "java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1491)",
+                                        "java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1948)",
+                                        "java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:189)"
+                                    ]
+                                },
+                                {
+                                    "tid": "28",
+                                    "name": "doc-proc3",
+                                    "stack": [
+                                        "java.base/java.lang.Thread.sleep(Thread.java:574)",
+                                        "StructCon.processDocument(StructCon.java:29)",
+                                        "StructCon.lambda$fetch$0(StructCon.java:66)",
+                                        "java.base/java.util.concurrent.StructuredTaskScope$SubtaskImpl.run(StructuredTaskScope.java:886)",
+                                        "java.base/java.lang.VirtualThread.runContinuation(VirtualThread.java:248)",
+                                        "java.base/java.lang.VirtualThread$$Lambda/0x00007f65bc003288.run(Unknown Source)",
+                                        "java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.compute(ForkJoinTask.java:1726)",
+                                        "java.base/java.util.concurrent.ForkJoinTask$InterruptibleTask.exec(ForkJoinTask.java:1663)",
+                                        "java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:507)",
+                                        "java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1491)",
+                                        "java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1948)",
+                                        "java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:189)"
+                                    ]
+                                }
+                            ],
+                            "threadCount": "3"
+                        }
+                    ]
+                }
+            };
+            
+            processThreadDump(sampleData);
+        }
+
+        // Initialize theme on load
+        initTheme();
+
+        // Close export menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.export-menu')) {
+                document.getElementById('exportDropdown').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
