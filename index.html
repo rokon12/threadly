@@ -1080,6 +1080,60 @@
             processThreadDump(sampleData);
         }
 
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + F - Focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                const searchBox = document.getElementById('searchBox');
+                if (searchBox && document.getElementById('analysisView').style.display !== 'none') {
+                    searchBox.focus();
+                    searchBox.select();
+                }
+            }
+            
+            // Escape - Close dropdowns and blur search
+            if (e.key === 'Escape') {
+                document.getElementById('exportDropdown').classList.remove('show');
+                document.activeElement.blur();
+            }
+            
+            // Ctrl/Cmd + E - Expand all
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                e.preventDefault();
+                if (document.getElementById('analysisView').style.display !== 'none') {
+                    expandAll();
+                }
+            }
+            
+            // Ctrl/Cmd + Shift + E - Collapse all
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+                e.preventDefault();
+                if (document.getElementById('analysisView').style.display !== 'none') {
+                    collapseAll();
+                }
+            }
+            
+            // Ctrl/Cmd + O - Open file
+            if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                e.preventDefault();
+                document.getElementById('fileInput').click();
+            }
+            
+            // ? - Show help (when not in input)
+            if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                e.preventDefault();
+                // Will implement help overlay later
+                alert('Keyboard Shortcuts:\n\n' +
+                      'Ctrl/Cmd + F - Focus search\n' +
+                      'Ctrl/Cmd + O - Open file\n' +
+                      'Ctrl/Cmd + E - Expand all\n' +
+                      'Ctrl/Cmd + Shift + E - Collapse all\n' +
+                      'Escape - Close menus\n' +
+                      '? - Show this help');
+            }
+        });
+
         // Initialize theme on load
         initTheme();
 
