@@ -691,6 +691,102 @@
         .help-tip strong {
             color: var(--accent-color);
         }
+
+        .recent-files {
+            position: relative;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .recent-files-button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .recent-files-button:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .recent-files-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: none;
+            min-width: 250px;
+            max-width: 350px;
+            z-index: 10;
+            margin-top: 4px;
+        }
+
+        .recent-files-dropdown.show {
+            display: block;
+        }
+
+        .recent-file-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .recent-file-item:last-child {
+            border-bottom: none;
+        }
+
+        .recent-file-item:hover {
+            background-color: var(--bg-primary);
+        }
+
+        .recent-file-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .recent-file-details {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .no-recent-files {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .clear-recent {
+            padding: 10px 15px;
+            text-align: center;
+            color: var(--error-color);
+            cursor: pointer;
+            border-top: 1px solid var(--border-color);
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+
+        .clear-recent:hover {
+            background-color: rgba(244, 67, 54, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -792,6 +888,18 @@
                 <input type="file" id="fileInput" accept=".json">
                 <button class="btn">Choose File</button>
                 <button class="btn btn-secondary" onclick="loadSampleData(event)">Try Demo</button>
+            </div>
+            
+            <div class="recent-files" style="margin-top: 20px;">
+                <button class="recent-files-button" onclick="toggleRecentFiles()">
+                    📋 Recent Files
+                    <span id="recentFileCount" style="background-color: var(--accent-color); color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px; display: none;">0</span>
+                </button>
+                <div class="recent-files-dropdown" id="recentFilesDropdown">
+                    <div id="recentFilesList">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
             </div>
 
             <div class="instructions">
@@ -903,13 +1011,118 @@
         const STORAGE_KEYS = {
             THEME: 'threadly-theme',
             FILTERS: 'threadly-filters',
-            EXPANDED: 'threadly-expanded'
+            EXPANDED: 'threadly-expanded',
+            RECENT_FILES: 'threadly-recent-files'
         };
+
+        // Recent files management
+        let recentFiles = [];
+        const MAX_RECENT_FILES = 5;
+
+        function loadRecentFiles() {
+            const saved = localStorage.getItem(STORAGE_KEYS.RECENT_FILES);
+            if (saved) {
+                try {
+                    recentFiles = JSON.parse(saved);
+                    updateRecentFilesUI();
+                } catch (e) {
+                    console.error('Failed to load recent files:', e);
+                    recentFiles = [];
+                }
+            }
+        }
+
+        function addRecentFile(fileName, fileData) {
+            const fileInfo = {
+                name: fileName,
+                size: fileData.length,
+                timestamp: Date.now(),
+                processId: currentThreadDump?.processId || 'Unknown',
+                threadCount: currentThreadDump ? 
+                    currentThreadDump.threadContainers.reduce((sum, container) => 
+                        sum + parseInt(container.threadCount || container.threads?.length || 0), 0) : 0,
+                data: fileData // Store the actual data
+            };
+
+            // Remove if already exists
+            recentFiles = recentFiles.filter(f => f.name !== fileName);
+            
+            // Add to beginning
+            recentFiles.unshift(fileInfo);
+            
+            // Keep only MAX_RECENT_FILES
+            if (recentFiles.length > MAX_RECENT_FILES) {
+                recentFiles = recentFiles.slice(0, MAX_RECENT_FILES);
+            }
+            
+            localStorage.setItem(STORAGE_KEYS.RECENT_FILES, JSON.stringify(recentFiles.map(f => ({
+                ...f,
+                data: undefined // Don't store data in localStorage, it's too large
+            }))));
+            
+            updateRecentFilesUI();
+        }
+
+        function updateRecentFilesUI() {
+            const count = recentFiles.length;
+            const countEl = document.getElementById('recentFileCount');
+            const listEl = document.getElementById('recentFilesList');
+            
+            if (count > 0) {
+                countEl.textContent = count;
+                countEl.style.display = 'inline-block';
+                
+                listEl.innerHTML = recentFiles.map((file, index) => `
+                    <div class="recent-file-item" onclick="loadRecentFile(${index})">
+                        <div class="recent-file-name">${file.name}</div>
+                        <div class="recent-file-details">
+                            ${file.threadCount} threads • ${new Date(file.timestamp).toLocaleDateString()}
+                        </div>
+                    </div>
+                `).join('');
+                
+                listEl.innerHTML += '<div class="clear-recent" onclick="clearRecentFiles()">Clear Recent Files</div>';
+            } else {
+                countEl.style.display = 'none';
+                listEl.innerHTML = '<div class="no-recent-files">No recent files</div>';
+            }
+        }
+
+        function loadRecentFile(index) {
+            const file = recentFiles[index];
+            if (file && file.data) {
+                try {
+                    const data = JSON.parse(file.data);
+                    processThreadDump(data);
+                    toggleRecentFiles(); // Close dropdown
+                } catch (e) {
+                    showError('Failed to load recent file: ' + e.message);
+                }
+            } else {
+                showError('Recent file data not available. Please re-upload the file.');
+            }
+        }
+
+        function clearRecentFiles() {
+            if (confirm('Clear all recent files?')) {
+                recentFiles = [];
+                localStorage.removeItem(STORAGE_KEYS.RECENT_FILES);
+                updateRecentFilesUI();
+            }
+        }
+
+        function toggleRecentFiles() {
+            const dropdown = document.getElementById('recentFilesDropdown');
+            dropdown.classList.toggle('show');
+        }
 
         function loadSettings() {
             // Load theme
             const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            // Load recent files
+            loadRecentFiles();
 
             // Load filter settings
             const savedFilters = localStorage.getItem(STORAGE_KEYS.FILTERS);
@@ -1005,6 +1218,8 @@
                     updateLoadingText('Processing thread dump...');
                     setTimeout(() => {
                         processThreadDump(data);
+                        // Save to recent files after successful processing
+                        addRecentFile(file.name, e.target.result);
                         hideLoading();
                     }, 100); // Small delay to ensure UI updates
                 } catch (error) {
@@ -1632,10 +1847,13 @@
         // Initialize theme on load
         initTheme();
 
-        // Close export menu when clicking outside
+        // Close menus when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.export-menu')) {
                 document.getElementById('exportDropdown').classList.remove('show');
+            }
+            if (!e.target.closest('.recent-files')) {
+                document.getElementById('recentFilesDropdown').classList.remove('show');
             }
         });
     </script>
