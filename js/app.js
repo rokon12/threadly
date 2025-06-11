@@ -679,10 +679,23 @@
             }
             
             if (totalThreads > 200) {
-                analysis.recommendations.push({
-                    title: 'Thread Count',
-                    description: 'High thread count detected. Consider using thread pools and async processing.'
-                });
+                // Check if virtual threads are present
+                const hasVirtualThreads = threads.some(thread => 
+                    thread.threadName && thread.threadName.includes('VirtualThread') ||
+                    thread.threadName && thread.threadName.startsWith('virtual-')
+                );
+                
+                if (hasVirtualThreads) {
+                    analysis.recommendations.push({
+                        title: 'Virtual Thread Usage',
+                        description: 'High virtual thread count detected. This is normal for virtual threads - they are lightweight and designed for high concurrency.'
+                    });
+                } else {
+                    analysis.recommendations.push({
+                        title: 'Platform Thread Count',
+                        description: 'High platform thread count detected. Consider using thread pools, async processing, or migrating to virtual threads (Java 21+).'
+                    });
+                }
             }
             
             const stackDepthIssues = analyzeStackDepth();
